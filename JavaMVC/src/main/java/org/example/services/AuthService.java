@@ -50,6 +50,10 @@ public class AuthService {
             tx.commit();
 
             return user;
+        } catch (Exception e) {
+            String message = String.format("An error occurred when processing: %s. Details: %s", "register", e);
+            System.out.println(message);
+            throw e;
         }
     }
 
@@ -57,6 +61,8 @@ public class AuthService {
     // User Login
     // -------------------------
     public boolean login(String usernameOrEmail, String password) {
+
+        try{
         User user = getUserByUsername(usernameOrEmail);
 
         if (user == null) {
@@ -68,6 +74,11 @@ public class AuthService {
 
         String hashedInput = hashPassword(password, user.getSalt());
         return hashedInput.equals(user.getPasswordHash());
+    } catch(Exception e){
+            String message = String.format("An error occurred when processing: %s. Details: %s", "login", e);
+            System.out.println(message);
+            throw e;
+        }
     }
 
     // -------------------------

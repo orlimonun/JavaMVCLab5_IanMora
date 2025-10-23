@@ -18,12 +18,12 @@ public class MantService {
         this.sessionFactory = sessionFactory;
     }
 
-    public Mantenimiento createMantenimiento(Long id, Date fecha,String descripcion, String tipo, Car car) {
+    public Mantenimiento createMantenimiento( Date fecha,String descripcion, String tipo, Long carId) {
         try (Session session = sessionFactory.openSession()) {
+            var car = session.find(Car.class, carId);
             Transaction tx = session.beginTransaction();
 
             Mantenimiento mantenimiento = new Mantenimiento();
-            mantenimiento.setId(id);
             mantenimiento.setFecha(fecha);
             mantenimiento.setDescripcion(descripcion);
             mantenimiento.setTipo(tipo);
@@ -41,6 +41,10 @@ public class MantService {
     public Mantenimiento getMantenimientoById(Long id) {
         try (Session session = sessionFactory.openSession()) {
             return session.find(Mantenimiento.class, id);
+        } catch(Exception e){
+            String message = String.format("An error occurred when processing: %s. Details: %s", "getCarById", e);
+            System.out.println(message);
+            throw e;
         }
     }
 
@@ -48,6 +52,7 @@ public class MantService {
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery("FROM mantenimiento", Mantenimiento.class).list();
         }
+
     }
 
     public List<Mantenimiento> getMantenimientosByCar(Car car) {
@@ -75,6 +80,10 @@ public class MantService {
 
             tx.commit();
             return mant;
+        } catch (Exception e){
+            String message = String.format("An error occurred when processing: %s. Details: %s", "updateCar", e);
+            System.out.println(message);
+            throw e;
         }
     }
 

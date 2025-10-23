@@ -1,5 +1,7 @@
 package org.example;
 
+import org.example.Server.MessageBroadcaster;
+import org.example.Server.SocketServer;
 import org.example.controller.AuthController;
 import org.example.controller.CarController;
 import org.example.controller.MantController;
@@ -28,26 +30,44 @@ public class Main {
         MantService mantService = new MantService(HibernateUtil.getSessionFactory());
         MantController mantController = new MantController(mantService);
 
-        try {
-            User user = authController.register("johndoe", "john@example.com", "password123", "USER");
+        var createUsers = true;
 
-            // Create a car
-            Car car = carController.createCar("Toyota", "86", 2022, user);
-            System.out.println("Created car: " + car.getMake() + " " + car.getModel());
-
-            // List cars for the user
-            carController.getCarsByUser(user).forEach(c ->
-                    System.out.println("Car: " + c.getYear() + " " + c.getMake() + " " + c.getModel())
-            );
-
-            Mantenimiento mantenimiento1 = mantController.createMantenimiento(1L ,new Date(),"cambio de aceite", "Preventivo",car);
-
-
-            mantController.getMantenimientoByCar(car).forEach(c ->
-                    System.out.println("Mantenimiento: " + c.getId() + " " + c.getDescripcion() + " " + c.getTipo() + " " + c.getFecha()));
-        } catch (Exception e) {
-            e.printStackTrace();
-            //hola
+        if (createUsers) {
+            try {
+                authService.register("user", "email@example.com", "pass", "USER");
+                authService.register("otro", "otro@example.com", "pass", "USER");
+            } catch (Exception e) {
+                System.out.println("Error al registrar usuarios: " + e.getMessage());
+            }
         }
+
+
+        // Server for request/response (API-like)
+        int requestPort = 7000;
+        SocketServer requestServer = new SocketServer(
+                requestPort,
+                authController,
+                carController,
+                mantController);
+
+        // Server for chat/broadcasting (persistent connections)
+        int messagePort = 7001;
+        MessageBroadcaster messageBroadcaster = new MessageBroadcaster(messagePort, requestServer);
+
+        // Register the broadcaster with the request server so it can broadcast messages
+        requestServer.setMessageBroadcaster(messageBroadcaster);
+
+        // Shutdown hook
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("\nShutting down servers...");
+            requestServer.stop();
+            messageBroadcaster.stop();
+        }));
+
+        // Start servers
+        requestServer.start();
+        messageBroadcaster.start();
+        System.out.println("Servers started - Requests: " + requestPort + ", Messages: " + messagePort);
     }
+
 }
